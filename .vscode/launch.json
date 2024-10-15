@@ -5,15 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "PowerShell: Launch Script",
+            "name": "PowerShell: Launch Upload Script",
             "type": "PowerShell",
             "request": "launch",
-            "script": "${workspaceFolder}/scripts/minify.ps1",
-            "args": [
-                "test",
-                "${workspaceFolder}/src",
-                "${workspaceFolder}/min/test"
-            ]
+            "script": "${workspaceFolder}/scripts/upload.ps1",
+            "args": []
         }
     ]
 }
