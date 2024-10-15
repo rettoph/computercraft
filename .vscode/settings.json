@@ -1,0 +1,11 @@
+{
+    "emeraldwalk.runonsave": {
+      "commands": [
+        {
+          // Run whenever any file is saved
+          "match": ".lua|.json",
+          "cmd": "pwsh.exe ${workspaceFolder}\\scripts\\install.ps1 test ${fileDirname}\\${fileBasename}"
+        }
+      ]
+    }
+  }
