@@ -15,9 +15,11 @@ else
             port = "";
             folder = "";
             username = "";
-            openSsh = $true;
             privateKeyPath = "";
         };
+        projects = @{
+
+        }
     }
 
     New-Item $configFile
@@ -50,11 +52,14 @@ $sftp = New-SFTPSession -ComputerName $config.remote.host -Port $config.remote.p
 Write-Information "test"
 
 function Save-MinifiedLua(
-    [string]$in
+    [string]$in,
+    [string]$inDir,
+    [string]$minDir,
+    [string]$computer
 )
 {
     $key = "$($entryFile).$($in)"
-    $file = Get-LuaPath $in
+    $file = Get-LuaPath $in $inDir
     if($null -eq $file)
     {
         return 0
@@ -65,7 +70,7 @@ function Save-MinifiedLua(
     # Check if contents has changed since last minification
     if($minified.ContainsKey($key) -eq $true -and $hash -eq $minified[$key])
     {
-        # return 0
+        return 0
     }
 
     $minified[$key] = $hash
@@ -76,43 +81,43 @@ function Save-MinifiedLua(
     $pattern = "require.*?['|`"](.*?)['|`"]"
     $matches = [regex]::Matches($content, $pattern)
     foreach ($match in $matches) {
-        $result = $result + (Save-MinifiedLua $match.Groups[1].Value $sourceDir $outDir)
+        $result = $result + (Save-MinifiedLua $match.Groups[1].Value $inDir $minDir $computer)
     }
 
-    $outputFile = "$($outDir)/$($in).lua"
-    $outputFileDir = [System.IO.Path]::GetDirectoryName($outputFile)
-    if(-not (Test-Path $outputFileDir))
+    $minFile = "$($minDir)/$($in).lua"
+    $minFileDir = [System.IO.Path]::GetDirectoryName($minFile)
+    if(-not (Test-Path $minFileDir))
     {
-        New-Item -Path $outputFileDir -ItemType Directory
+        New-Item -Path $minFileDir -ItemType Directory
     }
 
     Write-Host "Minifying '$($file)'..."
     $output = npx luamin -f $file
-    Set-Content -Path $outputFile -Value $output
+    Set-Content -Path $minFile -Value $output
 
-    $uploadFile = "$($config.remote.folder)/$($in).lua"
+    $uploadFile = "$($config.remote.folder)/$($computer)/$($in).lua"
     $uploadFileDir = [System.IO.Path]::GetDirectoryName($uploadFile) -replace "\\", "/"
 
-    Write-Host "Uploading file: '$($outputFile)' => '$($uploadFileDir)'"
+    Write-Host "Uploading file: '$($minFile)' => '$($uploadFileDir)'"
     if ((Test-SFTPPath -SessionId $sftp.SessionId -Path $uploadFileDir) -eq $false)
     {
         $null = New-SFTPItem -SessionId $sftp.SessionId -Path $uploadFileDir -ItemType Directory
     }
 
-    $null = Set-SFTPItem -SessionId $sftp.SessionId -Destination $uploadFileDir -Path $outputFile -Force
+    $null = Set-SFTPItem -SessionId $sftp.SessionId -Destination $uploadFileDir -Path $minFile -Force
 
     return $result
 }
 
 function Get-LuaPath($name, $dir)
 {
-    $file = "$($sourceDir)/$($in).lua"
+    $file = "$($dir)/$($in).lua"
     if((Test-Path $file) -eq $true)
     {
         return $file
     }
 
-    $file = "$($sourceDir)/$($in)"
+    $file = "$($dir)/$($in)"
     if((Test-Path $file) -eq $true)
     {
         return $file
@@ -124,6 +129,7 @@ function Get-LuaPath($name, $dir)
         return $file
     }
 
+    Write-Warning "$($dir) not found"
     Write-Warning "$($name) not found"
     return $null
 }
@@ -134,13 +140,15 @@ if (-not (Test-Path $outDir))
     New-Item -Path $outDir -ItemType Directory
 }
 
-$modified = Save-MinifiedLua $entryFile $sourceDir $outDir
-if($modified -gt 0)
+foreach($project in $config.projects)
 {
-    
-    Set-Content "$PSScriptRoot\.cache\.minified.json" (ConvertTo-Json $minified)
+    Write-Host "Cleaning project: $($project.name)"
+    $modified = Save-MinifiedLua $project.entry "$($PSScriptRoot)/../src" "$($PSScriptRoot)/../min" $project.computer
+    if($modified -gt 0)
+    {
+        Set-Content "$PSScriptRoot\.cache\.minified.json" (ConvertTo-Json $minified)
+    }
+    Write-Host "Done. $($modified) file(s) minified & uploaded."
 }
 
 Remove-SFTPSession -SFTPSession $sftp | Out-Null
-
-Write-Host "Done. $($modified) file(s) minified & uploaded."

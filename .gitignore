@@ -3,3 +3,4 @@ node_modules
 package-lock.json
 min
 scripts/.cache/.minified.json
+scripts/config.json
