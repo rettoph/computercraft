@@ -4,6 +4,7 @@
       "enabled": true,
       "computers": [ 15 ],
       "files": [
+        "Main\\factory.lua"
       ]
     }
 ]

@@ -36,7 +36,7 @@ function Sync-Project([System.Object]$project, [string[]]$files = $null, [bool]$
         foreach($file in $files)
         {
             $name = Get-ProjectFileName $file
-            if($project.files.Contains($name))
+            if($project.files.Contains($name) -or $cache.ContainsKey($name))
             {
                 $targets += $name
             }
@@ -70,6 +70,17 @@ function Sync-ProjectFile($project, [string]$file, [hashtable]$cache, [bool]$for
         return @{Modified = $false; Cache = $null}
     }
 
+    # find all 'require' directives
+    [string]$content = Get-Content $source
+    if ($content.Length -gt 0)
+    {
+        $pattern = "require.*?['|`"](.*?)['|`"]"
+        $requires = [regex]::Matches($content, $pattern)
+        foreach ($require in $requires) {
+            Sync-ProjectFile $project (Get-ProjectRequireFileName $require.Groups[1].Value $source) $cache $force
+        }
+    }
+
     Write-Host "Syncing project file. Project = '$($project.name)', File = '$file', Source = '$source'"
     foreach($computer in $project.computers.GetEnumerator())
     {
@@ -100,15 +111,25 @@ function Remove-ComputerFiles($computer)
 
     foreach($file in (Get-SFTPChildItem -SessionId $sftp.Session.SessionId -Path $uploadDir -Recurse -File))
     {
+        if ($file.FullName.Contains("/.persistence"))
+        {
+            continue
+        }
+
         Write-Host "Deleting: '$($file.FullName)'"
         Remove-SFTPItem -SessionId $sftp.Session.SessionId -Path $file.FullName
     }
 
     
-    foreach($file in (Get-SFTPChildItem -SessionId $sftp.Session.SessionId -Path $uploadDir -Recurse -Directory))
+    foreach($directory in (Get-SFTPChildItem -SessionId $sftp.Session.SessionId -Path $uploadDir -Recurse -Directory))
     {
-        Write-Host "Deleting: '$($file.FullName)'"
-        Remove-SFTPItem -SessionId $sftp.Session.SessionId -Path $file.FullName
+        if ($directory.FullName.Contains("/.persistence"))
+        {
+            continue
+        }
+
+        Write-Host "Deleting: '$($directory.FullName)'"
+        Remove-SFTPItem -SessionId $sftp.Session.SessionId -Path $directory.FullName
     }
 }
 
@@ -149,5 +170,17 @@ function Get-ProjectFileName([string]$source)
 {
     $directory = Get-Directory "$PSScriptRoot\..\..\src\"
     $result = $source.Substring($directory.Length)
+    return $result
+}
+
+function Get-ProjectRequireFileName([string]$require, [string]$source)
+{
+    $sourceDirectory = [System.IO.Path]::GetDirectoryName($source)
+    if($require.StartsWith("/"))
+    {
+        $sourceDirectory = Get-Directory "$PSScriptRoot\..\..\src"
+    }
+
+    $result = Get-ProjectFileName (Get-File "$sourceDirectory/$require.lua")
     return $result
 }
