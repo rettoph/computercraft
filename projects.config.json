@@ -4,8 +4,6 @@
       "enabled": true,
       "computers": [ 15 ],
       "files": [
-        "test.lua",
-        "somefolder\\item.lua"
       ]
     }
 ]

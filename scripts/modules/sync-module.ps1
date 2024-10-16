@@ -11,27 +11,34 @@ function Sync-Projects([string[]]$files = $null)
 
     foreach($project in $projects.GetEnumerator())
     {
-        Sync-Project $project
+        Sync-Project $project $files
     }
 
     Close-SFTP
 }
 
-function Sync-Project([System.Object]$project, [string[]]$files = $null)
+function Sync-Project([System.Object]$project, [string[]]$files = $null, [bool]$force = $false)
 {
-    [string[]]$targets = @{}
+    [string[]]$targets = @()
     $cache = Get-Cache "project.$($project.name)"
 
-    if($null -eq $files)
+    if($null -eq $files -or $files.Length -eq 0)
     {
         $targets = $project.files
+        $force = $true
+
+        foreach($computer in $project.computers)
+        {
+            Remove-ComputerFiles $computer
+        }
     }
     else {
         foreach($file in $files)
         {
-            if($project.files.Contains($file))
+            $name = Get-ProjectFileName $file
+            if($project.files.Contains($name))
             {
-                $targets.Add($file)
+                $targets += $name
             }
         }
     }
@@ -39,7 +46,7 @@ function Sync-Project([System.Object]$project, [string[]]$files = $null)
     $result = $false
     foreach($target in $targets.GetEnumerator())
     {
-        $result = (Sync-ProjectFile $project $target $cache).Modified -or $result
+        $result = (Sync-ProjectFile $project $target $cache $force).Modified -or $result
     }
 
     if($result -eq $true)
@@ -48,14 +55,9 @@ function Sync-Project([System.Object]$project, [string[]]$files = $null)
     }
 }
 
-function Sync-ProjectFile($project, $file, $cache = $null)
+function Sync-ProjectFile($project, [string]$file, [hashtable]$cache, [bool]$force)
 {
-    if($null -eq $cache)
-    {
-        $cache = Get-Cache "project.$($project.name)"
-    }
-
-    $source = Get-ProjectSource $file
+    $source = Get-ProjectFileSource $file
     if((Test-Path $source) -eq $false)
     {
         Write-Warning "Unknown project file. Project = '$($project.name)', File = '$file'"
@@ -63,7 +65,7 @@ function Sync-ProjectFile($project, $file, $cache = $null)
     }
 
     $hash = (Get-FileHash $source).Hash
-    if($cache.ContainsKey($file) -and $cache[$file] -eq $hash)
+    if($force -eq $false -and $cache.ContainsKey($file) -and $cache[$file] -eq $hash)
     {
         return @{Modified = $false; Cache = $null}
     }
@@ -75,12 +77,13 @@ function Sync-ProjectFile($project, $file, $cache = $null)
         $uploadFile = "$($sftp.Config.folder)/$computer/$file" -replace "\\", "/"
         $uploadFileDir = [System.IO.Path]::GetDirectoryName($uploadFile) -replace "\\", "/"
 
-        Write-Debug "Computer = $computer, File = '$($file)', Path = '$($uploadFile)'"
         if ((Test-SFTPPath -SessionId $sftp.Session.SessionId -Path $uploadFileDir) -eq $false)
         {
+            Write-Debug "Computer = $computer, Path = '$($uploadFileDir)'"
             $null = New-SFTPItem -SessionId $sftp.Session.SessionId -Path $uploadFileDir -ItemType Directory
         }
     
+        Write-Debug "Computer = $computer, File = '$($file)', Path = '$($uploadFile)'"
         $null = Set-SFTPItem -SessionId $sftp.Session.SessionId -Destination $uploadFileDir -Path $source -Force
     }
 
@@ -88,6 +91,25 @@ function Sync-ProjectFile($project, $file, $cache = $null)
     $cache[$file] = $hash
 
     return @{Modified = $true; Cache = $cache}
+}
+
+function Remove-ComputerFiles($computer)
+{
+    $sftp = Get-SFTP
+    $uploadDir = "$($sftp.Config.folder)/$computer" -replace "\\", "/"
+
+    foreach($file in (Get-SFTPChildItem -SessionId $sftp.Session.SessionId -Path $uploadDir -Recurse -File))
+    {
+        Write-Host "Deleting: '$($file.FullName)'"
+        Remove-SFTPItem -SessionId $sftp.Session.SessionId -Path $file.FullName
+    }
+
+    
+    foreach($file in (Get-SFTPChildItem -SessionId $sftp.Session.SessionId -Path $uploadDir -Recurse -Directory))
+    {
+        Write-Host "Deleting: '$($file.FullName)'"
+        Remove-SFTPItem -SessionId $sftp.Session.SessionId -Path $file.FullName
+    }
 }
 
 function Update-SyncCache($project, $cache)
@@ -118,12 +140,14 @@ function Close-SFTP
     $global:sftp = $null
 }
 
-function Get-ProjectSource([string]$file = $null)
+function Get-ProjectFileSource([string]$file = $null)
 {
-    if($null -eq $file)
-    {
-        return Get-Directory "$PSScriptRoot\..\..\src\"
-    }
-
     return Get-File "$PSScriptRoot\..\..\src\$file"
+}
+
+function Get-ProjectFileName([string]$source)
+{
+    $directory = Get-Directory "$PSScriptRoot\..\..\src\"
+    $result = $source.Substring($directory.Length)
+    return $result
 }

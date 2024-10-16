@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "PowerShell: Launch Upload Script",
+            "name": "Force Sync All",
             "type": "PowerShell",
             "request": "launch",
-            "script": "${workspaceFolder}/scripts/sync.ps1 c:\\Users\\Anthony\\source\\repos\\computercraft\\src\\test.lua",
+            "script": "${workspaceFolder}/scripts/sync.ps1",
             "args": []
         }
     ]
