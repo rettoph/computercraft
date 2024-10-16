@@ -8,7 +8,7 @@
             "name": "PowerShell: Launch Upload Script",
             "type": "PowerShell",
             "request": "launch",
-            "script": "${workspaceFolder}/scripts/upload.ps1",
+            "script": "${workspaceFolder}/scripts/sync.ps1 c:\\Users\\Anthony\\source\\repos\\computercraft\\src\\test.lua",
             "args": []
         }
     ]

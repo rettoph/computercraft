@@ -4,3 +4,4 @@ package-lock.json
 min
 scripts/.cache/.minified.json
 scripts/config.json
+remote.config.json

@@ -1,4 +1,1 @@
-require "imported"
-require "somefolder/item"
-
-print("asdadsadstadesadst")
+print("8")
