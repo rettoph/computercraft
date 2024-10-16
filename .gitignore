@@ -1,7 +1,3 @@
 .vscode/sftp.json
-node_modules
-package-lock.json
-min
-scripts/.cache/.minified.json
-scripts/config.json
+scripts/.cache
 remote.config.json
