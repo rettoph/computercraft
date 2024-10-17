@@ -6,7 +6,7 @@ This repo allows you to edit and automatically publish scripts to your CC comput
 - Install Posh-SSH:
   - `PS > Install-Module -Name Posh-SSH`
 - Configure `remote.config.json`. 
-  - Use (`remote.config.json.example`)[remote.config.json.example] as an example
+  - See [`remote.config.json.example`](remote.config.json.example)
 - Install recommended plugins
 - Run Launch profile: `Force Sync: All`
 
