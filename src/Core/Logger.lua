@@ -162,6 +162,7 @@ end
 
 ---@class Logger.File: Logger.Sink
 ---@field private _handle unknown
+---@field private _name string
 Logger.File = {}
 
 ---comment
@@ -170,17 +171,17 @@ Logger.File = {}
 ---@return Logger.File
 function Logger.File:New(level, name)
 	local o = {
-		level = level or Logger.Level.INFO,
-		name = Logger.File.GetLogPath(name or ("log_" .. os.date("%Y-%m-%d") .. ".txt"))
+		_level = level or Logger.Level.INFO,
+		_name = Logger.File.GetLogPath(name or ("log_" .. os.date("%Y-%m-%d") .. ".txt"))
 	}
 
     setmetatable(o, self)
 	self.__index = self
 
-	if fs.exists(o.name) == true then
-		o._handle = fs.open(o.name, "a")
+	if fs.exists(o._name) == true then
+		o._handle = fs.open(o._name, "a")
 	else
-		o._handle = fs.open(o.name, "w")
+		o._handle = fs.open(o._name, "w")
 	end
 
 	return o
