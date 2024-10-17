@@ -148,7 +148,7 @@ function Get-SFTP()
         $credentials = New-Object System.Management.Automation.PSCredential($config.username, (new-object System.Security.SecureString))
         $global:sftp = @{
             Config = $config;
-            Session = (New-SFTPSession -ComputerName $config.host -Port $config.port -Credential $credentials -KeyFile $config.privateKeyPath -AcceptKey);
+            Session = (New-SFTPSession -ComputerName $config.host -Port $config.port -Credential $credentials -KeyFile $config.key -AcceptKey);
         }
     }
 

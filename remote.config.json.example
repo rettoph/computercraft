@@ -1,0 +1,7 @@
+{
+    "host": "127.0.0.1",
+    "port": 22,
+    "username": "minecraft",
+    "folder": "/path/wo/minecraft/world/computer",
+    "key": "C:\\Path\\To\\SSH\\Key\\id_rsaOpenSSH"
+}
