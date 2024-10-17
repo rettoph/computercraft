@@ -80,6 +80,7 @@ function Logger:Verbose(message)
 end
 
 ---@class Logger.Sink
+---@field protected _level Logger.Level
 Logger.Sink = {}
 
 ---comment
@@ -97,7 +98,7 @@ Logger.Console = Logger.Sink
 ---@return Logger.Console
 function Logger.Console:New(level)
 	local o = {
-		level = level or Logger.Level.INFO
+		_level = level or Logger.Level.INFO
 	}
 
     setmetatable(o, self)
@@ -110,7 +111,7 @@ end
 ---@param message string
 ---@param level Logger.Level
 function Logger.Console:Write(message, level)
-    if level <= self.level then
+    if level <= self._level then
         term.setTextColor(Logger.Console.GetColor(level))
         print(Logger.Console.GetPrefix(level) .. message)
     end
@@ -160,6 +161,7 @@ function Logger.Console.GetPrefix(level)
 end
 
 ---@class Logger.File: Logger.Sink
+---@field private _handle unknown
 Logger.File = {}
 
 ---comment
@@ -176,9 +178,9 @@ function Logger.File:New(level, name)
 	self.__index = self
 
 	if fs.exists(o.name) == true then
-		o.handle = fs.open(o.name, "a")
+		o._handle = fs.open(o.name, "a")
 	else
-		o.handle = fs.open(o.name, "w")
+		o._handle = fs.open(o.name, "w")
 	end
 
 	return o
@@ -188,11 +190,11 @@ end
 ---@param message string
 ---@param level Logger.Level
 function Logger.File:Write(message, level)
-    if level <= self.level then
+    if level <= self._level then
         message = "["..os.date("%H:%M:%S").."]" .. Logger.File.GetPrefix(level) .. message
 
-        self.handle.writeLine(message)
-        self.handle.flush()
+        self._handle.writeLine(message)
+        self._handle.flush()
     end
 end
 

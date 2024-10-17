@@ -48,7 +48,6 @@
         "utf8": "enable"
     },
     "Lua.diagnostics.disable": [
-        "undefined-field",
         "deprecated"
     ],
   }

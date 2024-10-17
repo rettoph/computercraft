@@ -35,7 +35,7 @@ end
 ---@param destinationSlot integer|nil
 ---@return integer
 function Factory.TransferItemsById(id, amount, destination, destinationSlot)
-	local result = Factory._storage:TransferItems(id, amount, destination, destinationSlot)
+	local result = Factory._storage:TransferItemsById(id, amount, destination, destinationSlot)
 	return result
 end
 
@@ -66,11 +66,11 @@ function Factory.StoreAll(inventoryName)
 
 	local success = true
 	for _,slot in pairs(inventory:GetSlots()) do
-		local result = inventory:TransferItems(slot.id, slot.count, Factory._storage)
+		local result = inventory:TransferItemsBySlot(slot:GetIndex(), slot:GetCount(), Factory._storage)
 
-		Factory.Queue(slot.id, -result)
+		Factory.Queue(slot:GetItem():GetId(), -result)
 
-		if slot.count ~= result then
+		if slot:GetCount() ~= 0 then
 			success = false
 		end
 	end
@@ -86,20 +86,20 @@ function Factory.StoreSlot(inventoryName, slotIndex)
 	end
 
 	local slot = inventory:GetSlotByIndex(slotIndex)
-	if slot.id == nil then
+    local item = slot:GetItem()
+	if item == nil then
 		return false
 	end
 
-	if slot.count == 0 then
+	if slot:GetCount() == 0 then
 		return false
 	end
 
-	local target = slot.count
-	local result = inventory:TransferItems(slot.id, slot.count, Factory._storage)
+	local result = inventory:TransferItemsBySlot(slot:GetIndex(), slot:GetCount(), Factory._storage)
 
-	Factory.Queue(slot.id, -result)
+	Factory.Queue(item:GetId(), -result)
 
-	return target == result
+	return slot:GetCount() == 0
 end
 
 return Factory

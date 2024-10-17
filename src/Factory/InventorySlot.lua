@@ -1,7 +1,7 @@
 ---@class InventorySlot
 ---@field private _index integer
 ---@field private _count integer
----@field private _item InventoryItem
+---@field private _item InventoryItem|nil
 ---@field private _inventory Inventory
 local InventorySlot = {}
 
@@ -43,7 +43,7 @@ function InventorySlot:GetCount()
 end
 
 ---Get item
----@return InventoryItem # Item
+---@return InventoryItem|nil # Item
 function InventorySlot:GetItem()
     return self._item
 end

@@ -102,23 +102,23 @@ end
 ---@param self Inventory
 ---@param index integer
 ---@return InventorySlot
-function Inventory:GetSlot(index)
+function Inventory:GetSlotByIndex(index)
     self:Clean()
 
-    local result = self._slot[index]
+    local result = self._slots[index]
     if result ~= nil then
         return result
     end
 
     result = self._slotCache[index]
     if result ~= nil then
-        self._slot[index] = result
+        self._slots[index] = result
         return result
     end
 
     result = InventorySlot:New(index, self)
     self._slotCache[index] = result
-    self._slot[index] = result
+    self._slots[index] = result
 
     return result
 end
@@ -231,7 +231,7 @@ end
 ---@param destinationSlotIndex integer|nil
 ---@return integer
 function Inventory:TransferItemsBySlot(slotIndex, count, destination, destinationSlotIndex)
-    local slot = self:GetSlot(slotIndex)
+    local slot = self:GetSlotByIndex(slotIndex)
 	if slot:GetCount() == 0 then
 		return 0
 	end
@@ -247,14 +247,14 @@ function Inventory:TransferItemsBySlot(slotIndex, count, destination, destinatio
     end
 
 	local result = 0
-    local amount = math.min(slot.count, count)
+    local amount = math.min(slot:GetCount(), count)
 		
     repeat
-        amount = module.pushItems(destination:GetName(), slot.index, amount, destinationSlotIndex)
+        amount = module.pushItems(destination:GetName(), slot:GetIndex(), amount, destinationSlotIndex)
 
         slot:Remove(amount)
         result = result + amount
-    until result >= count or slot.count == 0 or amount <= 0
+    until result >= count or slot:GetCount() == 0 or amount <= 0
     
     if result >= count then
         self._logger:Debug("Transfered " .. result .. "/" .. count .. " '" .. slot:GetItem():GetId() .. "' from '" .. self:GetName() .. "' to '" .. destination:GetName() .. "'")
@@ -270,10 +270,10 @@ end
 ---@param destination Inventory
 function Inventory:Squash(destination)
 	for _,destinationItem in pairs(destination:GetItems()) do
-		local sourceItem = self:GetItemById(destinationItem.id)
-		if sourceItem.total > 0 then
-			self._logger:Debug("Squash '" .. destinationItem.id .. "' from '" .. self:GetName() .. "' to '" .. destination:GetName() .. "'")
-			self:TransferItemsById(destinationItem.id, nil, destination)
+		local sourceItem = self:GetItemById(destinationItem:GetId())
+		if sourceItem:GetTotal() > 0 then
+			self._logger:Debug("Squash '" .. destinationItem:GetId() .. "' from '" .. self:GetName() .. "' to '" .. destination:GetName() .. "'")
+			self:TransferItemsById(destinationItem:GetId(), nil, destination)
 		end
 	end
 end
@@ -286,18 +286,18 @@ function Inventory:TransferUnstackedItems(destination)
 	local function cleanup()
 		-- Stacked -> Unstacked
 		for _,slot in pairs(self:GetSlots()) do
-			if slot.count == 1 then
-				self._logger:Info("Transfering unstacked item from stacked to unstacked: " .. slot.id)
-				self:TransferItemsById(slot.id, 1, destination)
+			if slot:GetCount() == 1 then
+				self._logger:Info("Transfering unstacked item from stacked to unstacked: " .. slot:GetItem():GetId())
+				self:TransferItemsById(slot:GetItem():GetId(), 1, destination)
 				return true
 			end
 		end
 	
 		-- Unstacked -> Stacked
 		for _,slot in pairs(destination:GetSlots()) do
-			if slot.count > 1 then
-				self._logger:Info("Transfering stacked items from unstacked to stacked: " .. slot.id)
-				destination:TransferItemsById(slot.id, slot.count, self)
+			if slot:GetCount() > 1 then
+				self._logger:Info("Transfering stacked items from unstacked to stacked: " .. slot:GetItem():GetId())
+				destination:TransferItemsById(slot:GetItem():GetId(), slot:GetCount(), self)
 				return true
 			end
 		end
