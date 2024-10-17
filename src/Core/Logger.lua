@@ -76,7 +76,7 @@ end
 ---comment
 ---@param message string
 function Logger:Verbose(message)
-    self:Write("V "..message, Logger.Level.VERBOSE)
+    self:Write(message, Logger.Level.VERBOSE)
 end
 
 ---@class Logger.Sink

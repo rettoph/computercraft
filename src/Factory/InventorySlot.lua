@@ -48,4 +48,11 @@ function InventorySlot:GetItem()
     return self._item
 end
 
+---Remove an amount from the slot count
+---@param amount integer
+function InventorySlot:Remove(amount)
+    self._count = self._count - amount
+    self:GetItem():Remove(amount)
+end
+
 return InventorySlot

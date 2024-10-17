@@ -1,3 +1,5 @@
+local ArrayHelper = require("/Core/ArrayHelper")
+
 ---@class InventoryItem
 ---@field private _id string
 ---@field private _inventory Inventory
@@ -5,6 +7,7 @@
 ---@field private _slots InventorySlot[]
 ---@field private _total integer
 local InventoryItem = {}
+
 function InventoryItem:New(id, inventory)
     local o = {
         _id = id,
@@ -24,7 +27,7 @@ end
 ---@param slot InventorySlot|nil
 function InventoryItem:Clean(update, slot)
     if update ~= self._update then
-        self._slots = {}
+        ArrayHelper.Clear(self._slots)
         self._total = 0
     end
 
@@ -32,8 +35,8 @@ function InventoryItem:Clean(update, slot)
         return
     end
 
-    self._slots[#self._slots+1] = slot
     self._total = self._total + slot:GetCount()
+    ArrayHelper.Add(self._slots, slot)
 end
 
 ---Get item id
@@ -52,6 +55,12 @@ end
 ---@return integer # Total
 function InventoryItem:GetTotal()
     return self._total
+end
+
+---Remove an amount from the item total
+---@param amount integer
+function InventoryItem:Remove(amount)
+    self._total = self._total - amount
 end
 
 return InventoryItem
