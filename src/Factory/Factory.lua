@@ -30,7 +30,7 @@ end
 
 ---Transfer items from factory storage to a target destination
 ---@param id string
----@param amount integer
+---@param amount integer|nil
 ---@param destination Inventory
 ---@param destinationSlot integer|nil
 ---@return integer
@@ -39,7 +39,8 @@ function Factory.TransferItemsById(id, amount, destination, destinationSlot)
 	return result
 end
 
----comment
+---Return the factory item total
+---Includes enqueued items
 ---@param id string
 ---@return integer
 function Factory.GetItemTotalById(id)
@@ -57,13 +58,11 @@ function Factory.Queue(id, count)
 	Factory._logger:Debug("Queued " .. count .. " '" .. id .. "', " .. Factory._queue[id] .. " total")
 end
 
-function Factory.StoreAll(inventoryName)
-	local inventory = Factory.GetInventoryByName(inventoryName)
-	if not inventory then 
-		Factory._logger:Warning("StoreAll:Unknown inventory '" .. inventoryName .. "'")
-		return 0 
-	end
 
+---Store all items within an inventory
+---@param inventory Inventory
+---@return boolean
+function Factory.StoreAll(inventory)
 	local success = true
 	for _,slot in pairs(inventory:GetSlots()) do
 		local result = inventory:TransferItemsBySlot(slot:GetIndex(), slot:GetCount(), Factory._storage)
@@ -78,13 +77,11 @@ function Factory.StoreAll(inventoryName)
 	return success
 end
 
-function Factory.StoreSlot(inventoryName, slotIndex)
-	local inventory = Factory.GetInventoryByName(inventoryName)
-	if inventory  == nil then 
-		Factory._logger:Warning("StoreSlot:Unknown inventory '" .. inventoryName .. "'")
-		return 0 
-	end
-
+---comment
+---@param inventory Inventory
+---@param slotIndex integer
+---@return boolean
+function Factory.StoreSlot(inventory, slotIndex)
 	local slot = inventory:GetSlotByIndex(slotIndex)
     local item = slot:GetItem()
 	if item == nil then

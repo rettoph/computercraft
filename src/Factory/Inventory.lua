@@ -24,7 +24,8 @@ function Inventory:New(name, logger)
         _logger = logger,
         _itemCache = {},
         _slotCache = {},
-        _update = 0
+        _update = 0,
+        _dirty = true
     }
 
     setmetatable(o, self)
