@@ -7,7 +7,7 @@ return {
     Rule:New({
         name = "Pulverizers to Barrels",
         enabled = true,
-        interval = 60000,
+        interval = 1000,
         actions = {
             TransferItemAction:New({
                 source = "immersiveengineering:woodencrate_0",

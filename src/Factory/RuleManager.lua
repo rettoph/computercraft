@@ -6,7 +6,9 @@ local Loader = require("/Core/Loader")
 ---@field private _logger Logger
 local RuleManager = {
     _rules = {},
-    _sources = {}
+    _sources = {},
+---@diagnostic disable-next-line: undefined-field
+    _epoch = os.epoch("utc"),
 }
 
 RuleManager.__index = RuleManager
@@ -20,8 +22,13 @@ end
 function RuleManager.Update()
     RuleManager.Refresh()
 
+    ---@diagnostic disable-next-line: undefined-field
+    local epoch = os.epoch("utc")
+    local elapsed = epoch - RuleManager._epoch
+    RuleManager._epoch = epoch
+
     for _,rule in pairs(RuleManager._rules) do
-        rule:Invoke()
+        rule:Run(elapsed)
     end
 end
 
@@ -51,6 +58,7 @@ function RuleManager.Refresh()
         ---@cast file Rule[]
         for _,rule in pairs(file) do
             rules[#rules+1] = rule
+            rule:Initialize(RuleManager._logger)
         end
 
         if #file == 0 then

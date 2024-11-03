@@ -3,7 +3,7 @@ local Logger = require("/Core/Logger")
 rednet.open("back")
 
 local logger = Logger:New({ 
-    Logger.Console:New(Logger.Level.VERBOSE), 
+    Logger.Console:New(Logger.Level.DEBUG), 
     Logger.File:New(Logger.Level.INFO)
 })
 

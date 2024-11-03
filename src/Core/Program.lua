@@ -28,7 +28,8 @@ function Program.ErrorHandler(err)
         return err
     end
 
-    return debug.traceback(err)
+    --return debug.traceback(err)
+    return err
 end
 
 return Program
