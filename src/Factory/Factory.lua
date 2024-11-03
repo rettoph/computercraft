@@ -99,4 +99,10 @@ function Factory.StoreSlot(inventory, slotIndex)
 	return slot:GetCount() == 0
 end
 
+---Get factory storage inventory
+---@return Inventory
+function Factory.GetStorage()
+	return Factory._storage
+end
+
 return Factory

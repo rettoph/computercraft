@@ -8,8 +8,6 @@ local ItemMetaCache = require("/Factory/ItemMetaCache")
 ---@field private _dirty boolean
 ---@field private _items { [string]: InventoryItem }
 ---@field private _slots { [integer]: InventorySlot }
----@field private _itemCache { [string]: InventoryItem }
----@field private _slotCache { [integer]: InventorySlot }
 ---@field private _update integer
 local Inventory = {}
 
@@ -22,10 +20,10 @@ function Inventory:New(name, logger)
     local o = {
         _name = name,
         _logger = logger,
-        _itemCache = {},
-        _slotCache = {},
         _update = 0,
-        _dirty = true
+        _dirty = true,
+        _items = {},
+        _slots = {}
     }
 
     setmetatable(o, self)
@@ -72,22 +70,7 @@ end
 function Inventory:GetItemById(id)
     self:Clean()
 
-    local result = self._items[id]
-    if result ~= nil then
-        return result
-    end
-
-    result = self._itemCache[id]
-    if result ~= nil then
-        self._items[id] = result
-        return result
-    end
-
-    result = InventoryItem:New(id, self)
-    self._itemCache[id] = result
-    self._items[id] = result
-
-    return result
+    return self:GetOrCreateItemById(id)
 end
 
 ---Return all slots
@@ -106,22 +89,7 @@ end
 function Inventory:GetSlotByIndex(index)
     self:Clean()
 
-    local result = self._slots[index]
-    if result ~= nil then
-        return result
-    end
-
-    result = self._slotCache[index]
-    if result ~= nil then
-        self._slots[index] = result
-        return result
-    end
-
-    result = InventorySlot:New(index, self)
-    self._slotCache[index] = result
-    self._slots[index] = result
-
-    return result
+    return self:GetOrCreateSlotByIndex(index)
 end
 
 ---Refresh all internal item and slot caches
@@ -155,8 +123,8 @@ function Inventory:Clean()
 			local meta = ItemMetaCache.GetByItem(data, index, module) or {}
 
             ---@type InventorySlot
-			local slot = self:GetCachedSlotByIndex(index)
-            local item = self:GetCachedItemById(meta.id)
+			local slot = self:GetOrCreateSlotByIndex(index)
+            local item = self:GetOrCreateItemById(meta.id)
 
             slot:Clean(data.count, item)
             item:Clean(self._update, slot);
@@ -324,11 +292,11 @@ end
 ---@param id string
 ---@return InventoryItem
 ---@private
-function Inventory:GetCachedItemById(id)
-    local result = self._itemCache[id]
+function Inventory:GetOrCreateItemById(id)
+    local result = self._items[id]
     if result == nil then
         result = InventoryItem:New(id, self)
-        self._itemCache[id] = result
+        self._items[id] = result
     end
 
     return result
@@ -339,11 +307,11 @@ end
 ---@param index integer
 ---@return InventorySlot
 ---@private
-function Inventory:GetCachedSlotByIndex(index)
-    local result = self._slotCache[index]
+function Inventory:GetOrCreateSlotByIndex(index)
+    local result = self._slots[index]
     if result == nil then
         result = InventorySlot:New(index, self)
-        self._slotCache[index] = result
+        self._slots[index] = result
     end
 
     return result

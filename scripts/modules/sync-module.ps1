@@ -40,8 +40,19 @@ function Sync-Project([System.Object]$project, [string[]]$files = $null, [bool]$
             {
                 $targets += $name
             }
+            else {
+                foreach($projectFile in $project.files)
+                {
+                    if($file.StartsWith($projectFile) -eq $true)
+                    {
+                        $targets += $projectFile
+                    }
+                }
+            }
         }
     }
+
+    $targets = Expand-ProjectTargets $targets
 
     $result = $false
     foreach($target in $targets.GetEnumerator())
@@ -121,15 +132,15 @@ function Remove-ComputerFiles($computer)
     }
 
     
-    foreach($directory in (Get-SFTPChildItem -SessionId $sftp.Session.SessionId -Path $uploadDir -Recurse -Directory))
+    foreach($directory in ((Get-SFTPChildItem -SessionId $sftp.Session.SessionId -Path $uploadDir -Recurse -Directory).FullName | Sort-Object -Property Length -Descending))
     {
-        if ($directory.FullName.Contains("/.persistence"))
+        if ($directory.Contains("/.persistence"))
         {
             continue
         }
 
-        Write-Host "Deleting: '$($directory.FullName)'"
-        Remove-SFTPItem -SessionId $sftp.Session.SessionId -Path $directory.FullName
+        Write-Host "Deleting: '$($directory)'"
+        Remove-SFTPItem -SessionId $sftp.Session.SessionId -Path $directory
     }
 }
 
@@ -183,4 +194,31 @@ function Get-ProjectRequireFileName([string]$require, [string]$source)
 
     $result = Get-ProjectFileName (Get-File "$sourceDirectory/$require.lua")
     return $result
+}
+
+function Expand-ProjectTargets([string[]] $targets)
+{
+    $directory = Get-Directory "$PSScriptRoot\..\..\src\"
+
+    $expanded = @()
+
+    foreach($target in $targets)
+    {
+        $path = [IO.Path]::GetFullPath("$directory\$target")
+
+        if((Test-Path -Path $path -PathType Leaf) -eq $true)
+        {
+            $expanded += $target
+        }
+
+        if((Test-Path -Path $path -PathType Container) -eq $true)
+        {
+            foreach($child in (Get-ChildItem $path -Recurse))
+            {
+                $expanded += $child.FullName.Substring($directory.Length)
+            }
+        }
+    }
+
+    return $expanded
 }

@@ -29,6 +29,7 @@ function InventoryItem:Clean(update, slot)
     if update ~= self._update then
         ArrayHelper.Clear(self._slots)
         self._total = 0
+        self._update = update
     end
 
     if slot == nil then

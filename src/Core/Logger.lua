@@ -1,3 +1,4 @@
+local Console = require("/Core/Console")
 
 ---@class Logger
 ---@field private _sinks Logger.Sink[]
@@ -112,30 +113,31 @@ end
 ---@param level Logger.Level
 function Logger.Console:Write(message, level)
     if level <= self._level then
-        term.setTextColor(Logger.Console.GetColor(level))
-        print(Logger.Console.GetPrefix(level) .. message)
+        Console.SetForegroundColor(Logger.Console.GetColor(level))
+        Console.WriteLine(Logger.Console.GetPrefix(level) .. message)
     end
 end
 
 ---comment
----@param level Logger.Level
 ---@private
+---@param level Logger.Level
+---@return Console.Color
 function Logger.Console.GetColor(level)
     if level == Logger.Level.ERROR then
-        return colors.red
+        return Console.Color.Red
     elseif level == Logger.Level.WARNING then
-        return colors.orange
+        return Console.Color.Orange
     elseif level == Logger.Level.SUCCESS then
-        return colors.green
+        return Console.Color.Green
     elseif level == Logger.Level.INFO then
-        return colors.white
+        return Console.Color.White
     elseif level == Logger.Level.DEBUG then
-        return colors.cyan
+        return Console.Color.Cyan
     elseif level == Logger.Level.VERBOSE then
-        return colors.purple
+        return Console.Color.Purple
     end
 
-    return nil
+    error("Unknown log level: " .. level)
 end
 
 ---comment
@@ -161,6 +163,7 @@ function Logger.Console.GetPrefix(level)
 end
 
 ---@class Logger.File: Logger.Sink
+---@field private _level Logger.Level
 ---@field private _handle unknown
 ---@field private _name string
 Logger.File = {}
@@ -243,5 +246,61 @@ function Logger.File.GetPrefix(level)
 
     return "[?????] "
 end
+
+---@class Logger.Rednet: Logger.Sink
+---@field private _level Logger.Level
+---@field private _recipient integer
+---@field private _modem unknown
+Logger.Rednet = {}
+
+---comment
+---@param level Logger.Level
+---@return Logger.File
+function Logger.Rednet:New(level)
+	local o = {
+		_level = level or Logger.Level.INFO,
+	}
+
+    setmetatable(o, self)
+	self.__index = self
+
+	return o
+end
+
+---comment
+---@param message string
+---@param level Logger.Level
+function Logger.Rednet:Write(message, level)
+    if level <= self._level then
+        rednet.broadcast({ 
+            level = level,
+            message = message
+        }, "log")
+    end
+end
+
+---comment
+---@param level Logger.Level
+---@return string
+---@private
+function Logger.Rednet.GetPrefix(level)
+    if level == Logger.Level.ERROR then
+        return "E "
+    elseif level == Logger.Level.WARNING then
+        return "W "
+    elseif level == Logger.Level.SUCCESS then
+        return "S "
+    elseif level == Logger.Level.INFO then
+        return "I "
+    elseif level == Logger.Level.DEBUG then
+        return "D "
+    elseif level == Logger.Level.VERBOSE then
+        return "V "
+    end
+
+    return "? "
+end
+
+
 
 return Logger

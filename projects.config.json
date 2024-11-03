@@ -1,10 +1,19 @@
 [
     {
-      "name": "factory",
+      "name": "mainframe",
       "enabled": true,
-      "computers": [ 15 ],
+      "computers": [ "15" ],
       "files": [
-        "Main\\factory.lua"
+        "Main\\mainframe.lua",
+        "Factory\\Rules"
+      ]
+    },
+    {
+      "name": "terminal",
+      "enabled": true,
+      "computers": [ "0" ],
+      "files": [
+        "Main\\terminal.lua"
       ]
     }
 ]
