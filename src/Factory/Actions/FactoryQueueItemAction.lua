@@ -1,9 +1,4 @@
 local Factory = require("/Factory/Factory")
-local InventoryManager = require("/Factory/InventoryManager")
-local Condition = require("/Factory/Conditions/Condition")
-local CompareTotalCondition = require("/Factory/Conditions/CompareTotalCondition")
-local CompareItemTotalCondition = require("/Factory/Conditions/CompareItemTotalCondition")
-local CompareFactoryItemTotalCondition = require("/Factory/Conditions/CompareFactoryItemTotalCondition")
 
 local Action = require("/Factory/Actions/Action")
 

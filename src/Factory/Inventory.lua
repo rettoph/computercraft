@@ -164,7 +164,7 @@ function Inventory:TransferItemsById(id, count, destination, destinationSlotInde
 		return 0
 	end
 	
-    local module = self:GetModule()
+    local module = destination:GetModule()
     if module == nil then
         self._logger:Warning("Inventory not found: " .. self:GetName())
         return 0
@@ -175,7 +175,7 @@ function Inventory:TransferItemsById(id, count, destination, destinationSlotInde
 		local amount = math.min(slot:GetCount(), count)
 		
 		repeat
-			amount = module.pushItems(destination:GetName(), slot:GetIndex(), amount, destinationSlotIndex)
+			amount = module.pullItems(self:GetName(), slot:GetIndex(), amount, destinationSlotIndex)
 
 			slot:Remove(amount)
 			result = result + amount
