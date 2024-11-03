@@ -54,10 +54,15 @@ function Sync-Project([System.Object]$project, [string[]]$files = $null, [bool]$
 
     $targets = Expand-ProjectTargets $targets
 
+    if($force -eq $true)
+    {
+        $cache = @{}
+    }
+
     $result = $false
     foreach($target in $targets.GetEnumerator())
     {
-        $result = (Sync-ProjectFile $project $target $cache $force).Modified -or $result
+        $result = (Sync-ProjectFile $project $target $cache).Modified -or $result
     }
 
     if($result -eq $true)
@@ -66,7 +71,7 @@ function Sync-Project([System.Object]$project, [string[]]$files = $null, [bool]$
     }
 }
 
-function Sync-ProjectFile($project, [string]$file, [hashtable]$cache, [bool]$force)
+function Sync-ProjectFile($project, [string]$file, [hashtable]$cache)
 {
     $source = Get-ProjectFileSource $file
     if((Test-Path $source) -eq $false)
@@ -76,7 +81,7 @@ function Sync-ProjectFile($project, [string]$file, [hashtable]$cache, [bool]$for
     }
 
     $hash = (Get-FileHash $source).Hash
-    if($force -eq $false -and $cache.ContainsKey($file) -and $cache[$file] -eq $hash)
+    if($cache.ContainsKey($file) -and $cache[$file] -eq $hash)
     {
         return @{Modified = $false; Cache = $null}
     }
@@ -88,7 +93,7 @@ function Sync-ProjectFile($project, [string]$file, [hashtable]$cache, [bool]$for
         $pattern = "require.*?['|`"](.*?)['|`"]"
         $requires = [regex]::Matches($content, $pattern)
         foreach ($require in $requires) {
-            Sync-ProjectFile $project (Get-ProjectRequireFileName $require.Groups[1].Value $source) $cache $force
+            Sync-ProjectFile $project (Get-ProjectRequireFileName $require.Groups[1].Value $source) $cache
         }
     }
 

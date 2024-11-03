@@ -1,6 +1,11 @@
 local Factory = require("/Factory/Factory")
 local Condition = require("/Factory/Conditions/Condition")
 
+---@class CompareFactoryItemTotalConditionContext
+---@field public item string
+---@field public value integer
+---@field public comparator fun(value1: integer, value2: integer): boolean
+
 ---@class CompareFactoryItemTotalCondition: Condition
 ---@field private _item string
 ---@field private _value integer
@@ -11,17 +16,15 @@ CompareFactoryItemTotalCondition.__index = CompareFactoryItemTotalCondition
 setmetatable(CompareFactoryItemTotalCondition, { __index = Condition })
 
 ---Create new CompareFactoryItemTotalCondition instance
----@param item string
----@param value integer
----@param comparator fun(value1: integer, value2: integer): boolean
+---@param context CompareFactoryItemTotalConditionContext
 ---@return CompareFactoryItemTotalCondition
-function CompareFactoryItemTotalCondition:New(item, value, comparator)
+function CompareFactoryItemTotalCondition:New(context)
 	local o = Condition:New() --[[@as CompareFactoryItemTotalCondition]]
     setmetatable(o, self)
 
-    o._item = item
-    o._value = value
-    o._comparator = comparator
+    o._item = context.item
+    o._value = context.value
+    o._comparator = context.comparator
 
 	return o
 end

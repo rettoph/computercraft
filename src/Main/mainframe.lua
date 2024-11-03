@@ -19,6 +19,7 @@ RuleManager.Initialize(logger)
 
 Program.Run(function()
     while true do
+        InventoryManager.Update()
         RuleManager.Update()
     
 ---@diagnostic disable-next-line: undefined-field

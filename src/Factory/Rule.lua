@@ -4,16 +4,18 @@
 ---@field public interval integer
 ---@field public conditions Condition[]|nil
 ---@field public actions Action[]
+---@field public success Action[]|nil
 
 ---@class Rule
 ---@field private _name string
 ---@field private _enabled boolean
 ---@field private _conditions Condition[]|nil
 ---@field private _actions Action[]
+---@field private _success Action[]
 ---@field private _interval integer
 ---@field private _timeSinceInvoked integer
 ---@field private _timeoutRemaining integer
----@field private _fails integer
+---@field private _timtoutCounter integer
 ---@field private _logger Logger
 local Rule = {}
 
@@ -23,22 +25,19 @@ Rule.__index = Rule
 ---@param context RuleContext
 ---@return Rule
 function Rule:New(context)
-    local rule = {
-        _name = context.name,
-        _enabled = context.enabled,
-        _interval = context.interval,
-        _conditions = context.conditions or {},
-        _actions = context.actions,
-        _timeSinceInvoked = 0,
-        _timeoutRemaining = 0,
-        _fails = 0
-    }
+    local rule = {}
     setmetatable(rule, self)
     self.__index = self
 
-    if rule._conditions == nil then
-        rule._conditions = {}
-    end
+    rule._name = context.name;
+    rule._enabled = context.enabled;
+    rule._interval = context.interval;
+    rule._conditions = context.conditions or {};
+    rule._actions = context.actions;
+    rule._success = context.success or {};
+    rule._timeSinceInvoked = 0;
+    rule._timeoutRemaining = 0;
+    rule._timtoutCounter = 0;
 
     -- Add action specific conditions to internal conditions
     for _,action in pairs(rule._actions) do
@@ -87,29 +86,32 @@ function Rule:TryInvoke()
         return false
     end
 
-    if self._fails >= 10 then
-        self._fails = 0
+    if self._timtoutCounter >= 10 then
+        self._timtoutCounter = 0
         self:Timeout()
         return false
     end
 
     if self:CheckConditions() == false then
-        self._fails = self._fails + 1
-        self._logger:Debug("Con Fail: '" .. self._name .. "' (" .. self._fails .. ")")
+        self._timtoutCounter = self._timtoutCounter + 1
+        self._logger:Debug("Con Fail: '" .. self._name .. "' (" .. self._timtoutCounter .. ")")
 
         return false
     end
 
     local success = self:InvokeActions()
     if success == false then
-        self._fails = self._fails + 1
-        self._logger:Warning("Invoke Fail: '" .. self._name .. "' (" .. self._fails .. ")")
+        self._timtoutCounter = self._timtoutCounter + 1
+        self._logger:Warning("Invoke Fail: '" .. self._name .. "' (" .. self._timtoutCounter .. ")")
 
         return false
     end
 
-    self._fails = 0
+    self._timtoutCounter = 0
     self._logger:Success("Invoke: '" .. self._name .. "'")
+    for _,successAction in pairs(self._success) do
+        successAction:Invoke()
+    end
 
     return true
 end

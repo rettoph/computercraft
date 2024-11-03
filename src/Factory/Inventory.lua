@@ -135,7 +135,7 @@ function Inventory:Clean()
 	end
 
     ItemMetaCache:Clean()
-    Inventory:SetDirty(false)
+    self:SetDirty(false)
     return true
 end
 
@@ -181,8 +181,10 @@ function Inventory:TransferItemsById(id, count, destination, destinationSlotInde
 			result = result + amount
 		until result >= count or slot:GetCount() == 0 or amount <= 0
 		
+        self:SetDirty(true)
+        destination:SetDirty(true)
+
 		if result >= count then
-            
 			self._logger:Verbose("Transfered " .. result .. "/" .. count .. " '" .. id .. "' from '" .. self:GetName() .. "' to '" .. destination:GetName() .. "'")
 			return result
 		end
@@ -198,23 +200,28 @@ end
 ---@param count integer|nil
 ---@param destination Inventory
 ---@param destinationSlotIndex integer|nil
----@return integer
+---@return integer, string|nil
 function Inventory:TransferItemsBySlot(slotIndex, count, destination, destinationSlotIndex)
     local slot = self:GetSlotByIndex(slotIndex)
 	if slot:GetCount() == 0 then
-		return 0
+		return 0, nil
 	end
 
+    if count == nil then
+        count = slot:GetCount()
+    end
+
 	if count <= 0 then
-		return 0
+		return 0, nil
 	end
 	
     local module = self:GetModule()
     if module == nil then
         self._logger:Warning("Inventory not found: " .. self:GetName())
-        return 0
+        return 0, nil
     end
 
+    local item = slot:GetItem():GetId()
 	local result = 0
     local amount = math.min(slot:GetCount(), count)
 		
@@ -225,13 +232,16 @@ function Inventory:TransferItemsBySlot(slotIndex, count, destination, destinatio
         result = result + amount
     until result >= count or slot:GetCount() == 0 or amount <= 0
     
+    self:SetDirty(true)
+    destination:SetDirty(true)
+
     if result >= count then
-        self._logger:Debug("Transfered " .. result .. "/" .. count .. " '" .. slot:GetItem():GetId() .. "' from '" .. self:GetName() .. "' to '" .. destination:GetName() .. "'")
-        return result
+        self._logger:Debug("Transfered " .. result .. "/" .. count .. " '" .. slot:GetItem():GetId() .. "' from '" .. self:GetName() .. "' (slot " .. slot:GetIndex() .. ") to '" .. destination:GetName() .. "'")
+        return result, item
     end
 
-	self._logger:Debug("Transfered " .. result .. "/" .. count .. " '" .. slot:GetItem():GetId() .. "' from '" .. self:GetName() .. "' to '" .. destination:GetName() .. "'")
-	return result
+	self._logger:Debug("Transfered " .. result .. "/" .. count .. " '" .. slot:GetItem():GetId() .. "' from '" .. self:GetName() .. "' (slot " .. slot:GetIndex() .. ") to '" .. destination:GetName() .. "'")
+	return result, item
 end
 
 ---Push all current items already within the destination inventory

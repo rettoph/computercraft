@@ -1,9 +1,7 @@
 local Factory = require("/Factory/Factory")
 local InventoryManager = require("/Factory/InventoryManager")
 local Condition = require("/Factory/Conditions/Condition")
-local CompareTotalCondition = require("/Factory/Conditions/CompareTotalCondition")
 local CompareItemTotalCondition = require("/Factory/Conditions/CompareItemTotalCondition")
-local CompareFactoryItemTotalCondition = require("/Factory/Conditions/CompareFactoryItemTotalCondition")
 
 local Action = require("/Factory/Actions/Action")
 
@@ -59,22 +57,51 @@ function TransferItemAction:New(context)
 	return o
 end
 
+---comment
+---@return boolean
 function TransferItemAction:Invoke()
     if self._item ~= nil then
         local target = self._interval or self._count
         local amount = self._source:TransferItemsById(self._item, target, self._destination, self._slot)
     
-        return amount == target
+        self:Dequeue(self._item, amount)
+
+        return target == nil or amount == target
+    end
+
+    if self._slot ~= nil then
+        local target = self._interval or self._count
+        local amount, item = self._source:TransferItemsBySlot(self._slot, target, self._destination)
+    
+        self:Dequeue(item, amount)
+
+        return target == nil or amount == target       
     end
 
     local result = true
     for _,item in pairs(self._source:GetItems()) do
         local target = item:GetTotal()
         local amount = self._source:TransferItemsById(item:GetId(), target, self._destination, self._slot)
+
+        self:Dequeue(item:GetId(), amount)
+
         result = result and (amount == target)
     end
 
     return result
+end
+
+function TransferItemAction:Dequeue(item, amount)
+    if amount == 0 then
+        return
+    end
+
+    if self._destination ~= Factory:GetStorage() then
+        return
+    end
+
+    --If we are stranfering to factory storage then dequeue incoming items
+    Factory.Queue(item, -amount)
 end
 
 ---@return Condition[]
@@ -83,15 +110,23 @@ function TransferItemAction:CreateConditions()
     local result = {}
 
     local soureConditionThreshold = self._interval or self._count or 1
-    if self._item == nil then
-        result[#result + 1] = CompareTotalCondition:New(self._source, soureConditionThreshold, Condition.GreaterThanOrEqualTo)
-    else
-        result[#result + 1] = CompareItemTotalCondition:New(self._source, self._item, soureConditionThreshold, Condition.GreaterThanOrEqualTo)
-    end
+    result[#result + 1] = CompareItemTotalCondition:New({
+        source = self._source, 
+        item = self._item, 
+        slot = self._slot,
+        value = soureConditionThreshold, 
+        comparator = Condition.GreaterThanOrEqualTo
+    })
 
     if self._count ~= nil and self._item ~= nil then
         local destinationConditionThreshold = self._count - (self._interval or self._count)
-        result[#result + 1] = CompareItemTotalCondition:New(self._destination, self._item, destinationConditionThreshold, Condition.LessThanOrEqualTo)
+        result[#result + 1] = CompareItemTotalCondition:New({
+            source = self._destination, 
+            item = self._item, 
+            slot = self._slot,
+            value = destinationConditionThreshold, 
+            comparator = Condition.LessThanOrEqualTo
+        })
     end
 
     return result

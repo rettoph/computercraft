@@ -39,7 +39,8 @@ end
 ---@param err any
 ---@return string
 function Loader.ErrorHandler(err)
-    return debug.traceback(err)
+    --return debug.traceback(err)
+    return err
 end
 
 ---comment

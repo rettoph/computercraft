@@ -6,6 +6,7 @@ local Program = {
 
 ---Run a program
 ---@param method fun()
+---@param logger Logger
 function Program.Run(method, logger)
     Program._running = true
 
@@ -14,6 +15,12 @@ function Program.Run(method, logger)
     
         if success == false then
             logger:Error(result --[[@as string]])
+
+            for i=10,1,-1 do
+                logger:Debug("Continue in " .. i .. "...")
+ ---@diagnostic disable-next-line: undefined-field
+ os.sleep(1)               
+            end
         end
     end
 end
