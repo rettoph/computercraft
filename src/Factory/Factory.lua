@@ -105,4 +105,10 @@ function Factory.GetStorage()
 	return Factory._storage
 end
 
+---comment
+---@param message string
+function Factory.Alert(message)
+	Factory._logger:Info(message)
+end
+
 return Factory

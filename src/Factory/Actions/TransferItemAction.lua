@@ -7,20 +7,22 @@ local Action = require("/Factory/Actions/Action")
 
 ---@class TransferItemActionContext
 ---@field public source string|nil
+---@field public sourceSlot integer|nil
 ---@field public item string|nil
 ---@field public count integer|nil
 ---@field public interval integer|nil
 ---@field public destination string|nil
----@field public slot integer|nil
+---@field public destinationSlot integer|nil
 local TransferItemActionContext = {}
 
 ---@class TransferItemAction: Action
 ---@field private _source Inventory
+---@field private _sourceSlot integer|nil
 ---@field private _destination Inventory
 ---@field private _item string|nil
 ---@field private _count integer|nil
 ---@field private _interval integer|nil
----@field private _slot integer|nil
+---@field private _destinationSlot integer|nil
 local TransferItemAction = {}
 
 TransferItemAction.__index = TransferItemAction
@@ -48,11 +50,12 @@ function TransferItemAction:New(context)
     end
 
     o._source = source
+    o._sourceSlot = context.sourceSlot
     o._destination = destination
+    o._destinationSlot = context.destinationSlot
     o._item = context.item
     o._count = context.count
     o._interval = context.interval
-    o._slot = context.slot
 
 	return o
 end
@@ -60,28 +63,28 @@ end
 ---comment
 ---@return boolean
 function TransferItemAction:Invoke()
-    if self._item ~= nil then
+    if self._sourceSlot ~= nil then
         local target = self._interval or self._count
-        local amount = self._source:TransferItemsById(self._item, target, self._destination, self._slot)
-    
-        self:Dequeue(self._item, amount)
-
-        return target == nil or amount == target
-    end
-
-    if self._slot ~= nil then
-        local target = self._interval or self._count
-        local amount, item = self._source:TransferItemsBySlot(self._slot, target, self._destination)
+        local amount, item = self._source:TransferItemsBySlot(self._sourceSlot, target, self._destination, self._destinationSlot)
     
         self:Dequeue(item, amount)
 
         return target == nil or amount == target       
     end
 
+    if self._item ~= nil then
+        local target = self._interval or self._count
+        local amount = self._source:TransferItemsById(self._item, target, self._destination, self._destinationSlot)
+    
+        self:Dequeue(self._item, amount)
+
+        return target == nil or amount == target
+    end
+
     local result = true
     for _,item in pairs(self._source:GetItems()) do
         local target = item:GetTotal()
-        local amount = self._source:TransferItemsById(item:GetId(), target, self._destination, self._slot)
+        local amount = self._source:TransferItemsById(item:GetId(), target, self._destination, self._destinationSlot)
 
         self:Dequeue(item:GetId(), amount)
 
@@ -113,7 +116,7 @@ function TransferItemAction:CreateConditions()
     result[#result + 1] = CompareItemTotalCondition:New({
         source = self._source, 
         item = self._item, 
-        slot = self._slot,
+        slot = self._sourceSlot,
         value = soureConditionThreshold, 
         comparator = Condition.GreaterThanOrEqualTo
     })
@@ -123,7 +126,7 @@ function TransferItemAction:CreateConditions()
         result[#result + 1] = CompareItemTotalCondition:New({
             source = self._destination, 
             item = self._item, 
-            slot = self._slot,
+            slot = self._destinationSlot,
             value = destinationConditionThreshold, 
             comparator = Condition.LessThanOrEqualTo
         })

@@ -51,7 +51,9 @@ function CompareItemTotalCondition:Invoke()
     -- get the number of specific items in the specified spot
     if self._slot ~= nil and self._item ~= nil then
         local slot = self._source:GetSlotByIndex(self._slot)
-        if slot:GetItem():GetId() ~= self._item then
+        local item = slot:GetItem()
+
+        if item ~= nil and item:GetId() ~= self._item then
             return false
         end
 
