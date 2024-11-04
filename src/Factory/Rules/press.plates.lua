@@ -66,6 +66,31 @@ return {
         }
     }),
     Rule:New({
+        name = "Gold Plates",
+        enabled = true,
+        interval = 4000,
+        conditions = {
+            CompareFactoryItemTotalCondition:New({
+                item = "thermalfoundation:material__item.thermalfoundation.material.plateGold__33",
+                value = 64,
+                comparator = Condition.LessThan
+            })
+        },
+        actions = {
+            TransferItemAction:New({
+                item = "minecraft:gold_ingot__item.ingotGold__0",
+                count = 1,
+                destination = "minecraft:hopper_2"
+            })
+        },
+        success = {
+            FactoryQueueItemAction:New({
+                item = "thermalfoundation:material__item.thermalfoundation.material.plateGold__33",
+                value = 1
+            })
+        }
+    }),
+    Rule:New({
         name = "Steel Plates",
         enabled = true,
         interval = 4000,
