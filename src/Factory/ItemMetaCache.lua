@@ -14,6 +14,7 @@ ItemMetaCache.ItemType = {
 	DAMAGE_VARIANT = 0,
 	DAMAGE_INVARIANT = 1,
 	DAMAGE_NBT_VARIANT = 2,
+	FLUID = 3
 }
 
 ---@class ItemMetaCache.ItemMetaData
@@ -143,6 +144,28 @@ function ItemMetaCache.GetByItem(item, slot, module)
 	end
 
     return result
+end
+
+---comment
+---@param tank table
+---@return ItemMetaCache.ItemMetaData
+function ItemMetaCache.GetByTank(tank)
+	local id = "fluid_" .. tank.rawName --[[@as string]]
+	local data = ItemMetaCache._cache[id]
+
+	if data == nil then
+		data = {
+			type = ItemMetaCache.ItemType.FLUID,
+			id = id,
+			name = tank.displayName
+		}
+
+		ItemMetaCache._cache[id] = data
+		ItemMetaCache._dirty = true
+		ItemMetaCache._logger:Info("ItemMetaCache - New Fluid: " .. id)
+	end
+
+	return data
 end
 
 ---comment

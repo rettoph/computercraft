@@ -1,5 +1,7 @@
 local InventoryItem = require("/Factory/InventoryItem")
 local InventorySlot = require("/Factory/InventorySlot")
+local InventoryFluid = require("/Factory/InventoryFluid")
+local InventoryTank = require("/Factory/InventoryTank")
 local ItemMetaCache = require("/Factory/ItemMetaCache")
 
 ---@class Inventory
@@ -8,6 +10,8 @@ local ItemMetaCache = require("/Factory/ItemMetaCache")
 ---@field private _dirty boolean
 ---@field private _items { [string]: InventoryItem }
 ---@field private _slots { [integer]: InventorySlot }
+---@field private _fluids { [string]: InventoryFluid }
+---@field private _tanks { [integer]: InventoryTank }
 ---@field private _update integer
 local Inventory = {}
 
@@ -23,7 +27,9 @@ function Inventory:New(name, logger)
         _update = 0,
         _dirty = true,
         _items = {},
-        _slots = {}
+        _slots = {},
+        _fluid = {},
+        _tanks = {},
     }
 
     setmetatable(o, self)
@@ -92,6 +98,45 @@ function Inventory:GetSlotByIndex(index)
     return self:GetOrCreateSlotByIndex(index)
 end
 
+---Return all items
+---@param self Inventory
+---@return { [string]: InventoryFluid }
+---@public
+function Inventory:GetFluids()
+    self:Clean()
+
+    return self._fluids
+end
+
+---Return an item
+---@param self Inventory
+---@param id string
+---@return InventoryFluid
+function Inventory:GetFluidById(id)
+    self:Clean()
+
+    return self:GetOrCreateFluidById(id)
+end
+
+---Return all slots
+---@param self Inventory
+---@return { [integer]: InventoryTank }
+function Inventory:GetTanks()
+    self:Clean()
+
+    return self._tanks
+end
+
+---Return a slot
+---@param self Inventory
+---@param index integer
+---@return InventoryTank
+function Inventory:GetTankByIndex(index)
+    self:Clean()
+
+    return self:GetOrCreateTankByIndex(index)
+end
+
 ---Refresh all internal item and slot caches
 ---@param self Inventory
 ---@return boolean
@@ -106,10 +151,32 @@ function Inventory:Clean()
     self._update = self._update + 1
     self._slots = {}
     self._items = {}
+    self._fluids = {}
+    self._tanks = {}
 
     local module = self:GetModule()
     if module == nil then
         self._logger:Warning("Inventory not found: " .. self:GetName())
+        return false
+    end
+
+    local result = false
+    result = self:CleanItems(module) or result
+    result = self:CleanFluids(module) or result
+
+    if result == true then
+        ItemMetaCache:Clean()
+    end
+
+    self:SetDirty(false)
+    return result
+end
+
+---comment
+---@param module unknown
+---@return boolean
+function Inventory:CleanItems(module)
+    if module.list == nil then
         return false
     end
 
@@ -122,7 +189,6 @@ function Inventory:Clean()
 		if data ~= nil then
 			local meta = ItemMetaCache.GetByItem(data, index, module) or {}
 
-            ---@type InventorySlot
 			local slot = self:GetOrCreateSlotByIndex(index)
             local item = self:GetOrCreateItemById(meta.id)
 
@@ -134,8 +200,37 @@ function Inventory:Clean()
 		end
 	end
 
-    ItemMetaCache:Clean()
-    self:SetDirty(false)
+    return true
+end
+
+---comment
+---@param module unknown
+---@return boolean
+function Inventory:CleanFluids(module)
+    if module.getTanks == nil then
+        return false
+    end
+
+    local tanks = module.getTanks()
+	if tanks == nil then
+        return false
+    end
+
+    for index,data in pairs(tanks) do
+		if data ~= nil then
+			local meta = ItemMetaCache.GetByTank(data) or {}
+
+			local tank = self:GetOrCreateTankByIndex(index)
+            local fluid = self:GetOrCreateFluidById(meta.id)
+
+            tank:Clean(data.amount, data.capacity, fluid)
+            fluid:Clean(self._update, tank);
+
+            self._tanks[index] = tank
+            self._fluids[meta.id] = fluid
+		end
+	end
+
     return true
 end
 
@@ -322,6 +417,36 @@ function Inventory:GetOrCreateSlotByIndex(index)
     if result == nil then
         result = InventorySlot:New(index, self)
         self._slots[index] = result
+    end
+
+    return result
+end
+
+---Return an item from the item cache
+---@param self Inventory
+---@param id string
+---@return InventoryFluid
+---@private
+function Inventory:GetOrCreateFluidById(id)
+    local result = self._fluids[id]
+    if result == nil then
+        result = InventoryFluid:New(id, self)
+        self._fluids[id] = result
+    end
+
+    return result
+end
+
+---Return a slot from the slot cache
+---@param self Inventory
+---@param index integer
+---@return InventoryTank
+---@private
+function Inventory:GetOrCreateTankByIndex(index)
+    local result = self._tanks[index]
+    if result == nil then
+        result = InventoryTank:New(index, self)
+        self._tanks[index] = result
     end
 
     return result
