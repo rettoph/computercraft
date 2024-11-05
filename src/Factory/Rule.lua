@@ -15,7 +15,8 @@
 ---@field private _interval integer
 ---@field private _timeSinceInvoked integer
 ---@field private _timeoutRemaining integer
----@field private _timtoutCounter integer
+---@field private _timeoutCounter integer
+---@field private _timeoutStreak integer
 ---@field private _logger Logger
 local Rule = {}
 
@@ -37,7 +38,8 @@ function Rule:New(context)
     rule._success = context.success or {};
     rule._timeSinceInvoked = 0;
     rule._timeoutRemaining = 0;
-    rule._timtoutCounter = 0;
+    rule._timeoutCounter = 0;
+    rule._timeoutStreak = 0;
 
     -- Add action specific conditions to internal conditions
     for _,action in pairs(rule._actions) do
@@ -86,28 +88,29 @@ function Rule:TryInvoke()
         return false
     end
 
-    if self._timtoutCounter >= 10 then
-        self._timtoutCounter = 0
+    if self._timeoutCounter >= 10 then
+        self._timeoutCounter = 0
         self:Timeout()
         return false
     end
 
     if self:CheckConditions() == false then
-        self._timtoutCounter = self._timtoutCounter + 1
-        self._logger:Debug("Con Fail: '" .. self._name .. "' (" .. self._timtoutCounter .. ")")
+        self._timeoutCounter = self._timeoutCounter + 1
+        self._logger:Debug("Con Fail: '" .. self._name .. "' (" .. self._timeoutStreak .. "," .. self._timeoutCounter .. ")")
 
         return false
     end
 
     local success = self:InvokeActions()
     if success == false then
-        self._timtoutCounter = self._timtoutCounter + 1
-        self._logger:Warning("Invoke Fail: '" .. self._name .. "' (" .. self._timtoutCounter .. ")")
+        self._timeoutCounter = self._timeoutCounter + 1
+        self._logger:Warning("Invoke Fail: '" .. self._name .. "' (" .. self._timeoutStreak .. "," .. self._timeoutCounter .. ")")
 
         return false
     end
 
-    self._timtoutCounter = 0
+    self._timeoutCounter = 0
+    self._timeoutStreak = 0
     self._logger:Success("Invoke: '" .. self._name .. "'")
     for _,successAction in pairs(self._success) do
         successAction:Invoke()
@@ -143,8 +146,44 @@ function Rule:InvokeActions()
 end
 
 function Rule:Timeout()
-    self._timeoutRemaining = self._interval * 10
-    self._logger:Warning("Timeout '" .. self._name .. "'")
+    self._timeoutStreak = self._timeoutStreak + 1
+
+    self._timeoutRemaining = math.min(self._interval * 10 * self._timeoutStreak, 60 * 1000 * 5)
+    self._logger:Warning("Timeout '" .. self._name .. "' (" .. (self._timeoutRemaining / 1000) .. "s)")
+end
+
+---Concat to arrays of rules
+---@param first Rule[]
+---@param second Rule[]
+---@return Rule[]
+function Rule.Concat(first, second)
+    local result = {}
+
+    for _,rule in pairs(first) do
+        result[#result + 1] = rule
+    end
+
+    for _,rule in pairs(second) do
+        result[#result + 1] = rule
+    end
+
+
+    return result
+end
+
+---comment
+---@generic T : table
+---@param args T[]
+---@param factory fun(T): Rule
+---@return Rule[]
+function Rule.CreateMany(args, factory)
+    local result = {}
+
+    for _,arg in pairs(args) do
+        result[#result + 1] = factory(arg)
+    end
+
+    return result
 end
 
 return Rule

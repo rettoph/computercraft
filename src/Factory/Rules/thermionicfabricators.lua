@@ -23,7 +23,7 @@ return {
         actions = {
             TransferItemAction:New({
                 item = "minecraft:sand__tile.sand.default__0",
-                count = 1,
+                count = 5,
                 destination = "forestry:fabricator_0",
                 destinationSlot = 1
             })
